@@ -13,7 +13,7 @@ TDsummarypath <- "Z:/ICR/David Butcher/Data Summaries/EcoliMG1655_TDdatasummary.
 
 # List of shortnames of TD reports to get UpSet plots for
 
-shortname <- c("gf03")
+shortname <- c("peppi04b")
 
 # Set the following parameters appropriately for the UpSet plots you
 # want to make

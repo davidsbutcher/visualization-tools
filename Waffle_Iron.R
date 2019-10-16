@@ -5,6 +5,11 @@
 
 # Initial Parameters --------------------------------------------------------------------------
 
+# TDsummarypath should be relative or absolute path to TDsummary file.
+# This shouldn't need to be changed unless the MagLab Z drive is not mapped.
+
+TDsummarypath <- "Z:/ICR/David Butcher/Data Summaries/EcoliMG1655_TDdatasummary.xlsx"
+
 # Shortnames to exclude when making a waffle including data from all shortnames
 # in the TDsummary file. Set this to NULL to not make this waffle.
 
@@ -13,12 +18,7 @@ exclusionlist <- NULL
 # Shortname to use when making waffle of a single sample set split by fraction
 # Select only a single shortname! Set this to NULL to not make this waffle.
 
-shortnameToUse <- "peppi02"
-
-# TDsummarypath should be relative or absolute path to TDsummary file.
-# This shouldn't need to be changed unless the MagLab Z drive is not mapped.
-
-TDsummarypath <- "Z:/ICR/David Butcher/Data Summaries/EcoliMG1655_TDdatasummary.xlsx"
+shortnameToUse <- "peppi04"
 
 # Packages ------------------------------------------------------------------------------------
 
