@@ -46,6 +46,8 @@ TDsummary %<>%
 
 shortnamelist <- TDsummary$`Short name` %>% as.list
 
+# Make input tibbles ------------------------------------------------------
+
 ## Create tibbles for input to waffle function for proteins and proteoforms
 
 input_waffle_protein <- tibble(
@@ -53,14 +55,14 @@ input_waffle_protein <- tibble(
     c(
       rep("Cytosolic", length(TDsummary$`Short name`)),
       rep("Membrane", length(TDsummary$`Short name`)),
-      rep("Both", length(TDsummary$`Short name`)),
-      rep("None", length(TDsummary$`Short name`))
+      rep("Periplasmic", length(TDsummary$`Short name`)),
+      rep("NOTA", length(TDsummary$`Short name`))
     )
   ),
   Count = c(TDsummary$`Cytosolic Proteins`,
             TDsummary$`Membrane Proteins`,
-            TDsummary$`Cytosolic & Membrane Proteins`,
-            TDsummary$`NoLoc Proteins`),
+            TDsummary$`Periplasmic Proteins`,
+            TDsummary$`NOTA Proteins`),
   shortname = factor(rep(TDsummary$`Short name`, 4))
 )
 
@@ -69,14 +71,14 @@ input_waffle_proteoform <- tibble(
     c(
       rep("Cytosolic", length(TDsummary$`Short name`)),
       rep("Membrane", length(TDsummary$`Short name`)),
-      rep("Both", length(TDsummary$`Short name`)),
-      rep("None", length(TDsummary$`Short name`))
+      rep("Periplasmic", length(TDsummary$`Short name`)),
+      rep("NOTA", length(TDsummary$`Short name`))
     )
   ),
   Count = c(TDsummary$`Cytosolic Proteoforms`,
             TDsummary$`Membrane Proteoforms`,
-            TDsummary$`Cytosolic & Membrane Proteoforms`,
-            TDsummary$`NoLoc Proteoforms`),
+            TDsummary$`Periplasmic Proteoforms`,
+            TDsummary$`NOTA Proteoforms`),
   shortname = factor(rep(TDsummary$`Short name`, 4))
 )
 
