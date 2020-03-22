@@ -17,8 +17,10 @@ exclusionlist <- NULL
 
 # Shortname to use when making waffle of a single sample set split by fraction
 # Select only a single shortname! Set this to NULL to not make this waffle.
+# Note that this is a "best hits" waffle, i.e. unique proteins are NOT found
+# in multiple fractions
 
-shortnameToUse <- "peppi04"
+shortnameToUse <- "gf05d"
 
 # Packages ------------------------------------------------------------------------------------
 
@@ -30,8 +32,9 @@ library(waffle)
 library(hrbrthemes)
 library(ggthemes)
 library(glue)
+library(here)
 
-# Load Excel Data -----------------------------------------------------------------------------
+# Load data for all shortnames ---------------------------------------------
 
 # Filepath should be relative or absolute path to TDsummary file.
 
@@ -40,17 +43,16 @@ if (is.null(exclusionlist) == FALSE) {
 TDsummary <- read_xlsx(TDsummarypath,
                        sheet = "summary")
 
-TDsummary %<>%
+TDsummary <- 
+  TDsummary %>%
   dplyr::filter(is.na(`Short name`) != TRUE) %>%
   dplyr::filter(!(`Short name` %in% exclusionlist))    # Optional exclusion list
 
 shortnamelist <- TDsummary$`Short name` %>% as.list
 
-# Make input tibbles ------------------------------------------------------
-
 ## Create tibbles for input to waffle function for proteins and proteoforms
 
-input_waffle_protein <- tibble(
+waffledata_protein_all <- tibble(
   Localization = factor(
     c(
       rep("Cytosolic", length(TDsummary$`Short name`)),
@@ -66,7 +68,7 @@ input_waffle_protein <- tibble(
   shortname = factor(rep(TDsummary$`Short name`, 4))
 )
 
-input_waffle_proteoform <- tibble(
+waffledata_proteoform_all <- tibble(
   Localization = factor(
     c(
       rep("Cytosolic", length(TDsummary$`Short name`)),
@@ -88,36 +90,45 @@ input_waffle_proteoform <- tibble(
   
 }
 
-## Load protein counts split by datafile/fraction in TDreport
+
+# Load data by datafile ---------------------------------------------------
+
+## Load protein counts split by fraction in TDreport
 
 if (is.null(shortnameToUse) == FALSE) {
+  
+  TDsummary_byfraction <-
+    read_xlsx(TDsummarypath,
+              sheet = "summary_byfraction") %>% 
+    drop_na() %>% 
+    dplyr::filter(`Short name` == shortnameToUse)
+  
+  fractionlist <- 
+    TDsummary_byfraction %>%
+    .$fraction %>%
+    as.list
 
-TDsummary_bydatafile <- read_xlsx(TDsummarypath,
-                       sheet = "summary_bydatafile")
+## Create tibbles for input to waffle function for proteins
+## split by fraction
 
-TDsummary_bydatafile %<>%
-  dplyr::filter(is.na(`Short name`) != TRUE) %>%
-  dplyr::filter(`Short name` == shortnameToUse)    # SELECT A SINGLE SHORTNAME!!
-
-datafilelist <- TDsummary_bydatafile$raw_file_name %>% as.list
-
-## Create tibbles for input to waffle function for proteins and proteoforms split by fraction
-
-input_waffle_protein_byfraction <- tibble(
-  Localization = factor(
-    c(
-      rep("Cytosolic", length(datafilelist)),
-      rep("Membrane", length(datafilelist)),
-      rep("Both", length(datafilelist)),
-      rep("None", length(datafilelist))
-    )
-  ),
-  Count = c(TDsummary_bydatafile$`Cytosolic Proteins`,
-            TDsummary_bydatafile$`Membrane Proteins`,
-            TDsummary_bydatafile$`Cytosolic & Membrane Proteins`,
-            TDsummary_bydatafile$`NoLoc Proteins`),
-  fraction = rep(TDsummary_bydatafile$fraction, 4)
-)
+waffledata_protein_all_byfraction <- 
+  tibble(
+    Localization = factor(
+      c(
+        rep("Cytosolic", length(fractionlist)),
+        rep("Membrane", length(fractionlist)),
+        rep("Periplasmic", length(fractionlist)),
+        rep("NOTA", length(fractionlist))
+      )
+    ),
+    Count = c(TDsummary_byfraction$`Cytosolic Proteins`,
+              TDsummary_byfraction$`Membrane Proteins`,
+              TDsummary_byfraction$`Periplasmic Proteins`,
+              TDsummary_byfraction$`NOTA Proteins`),
+    fraction = rep(TDsummary_byfraction$fraction, 4)
+  ) %>%
+  group_by(fraction, Localization) %>% 
+  summarize(Count)
 
 } else {
   
@@ -125,47 +136,14 @@ input_waffle_protein_byfraction <- tibble(
   
 }
 
-# Make Waffle Lists ---------------------------------------------------------------------------
-
-input_protein_list <- list()
-
-input_proteoform_list <- list()
-
-input_protein_list2 <- list()
-
-
-if (is.null(exclusionlist) == FALSE) {
-  
-  for (i in levels(input_waffle_protein$shortname)) {
-    
-    input_protein_list[[i]] <- input_waffle_protein %>% filter(shortname == i)
-    
-  }
-  
-  
-  for (i in levels(input_waffle_proteoform$shortname)) {
-    
-    input_proteoform_list[[i]] <- input_waffle_proteoform %>% filter(shortname == i)
-    
-  }
-  
-}
-
-if (is.null(shortnameToUse) == FALSE) {
-  
-  for (i in unique(input_waffle_protein_byfraction$fraction)) {
-    
-    input_protein_list2[[i]] <- input_waffle_protein_byfraction %>% filter(fraction == i)
-    
-  }
-}
-
-# Multiple Waffles ----------------------------------------------------------------------------
+# Make waffles for all shortnames -----------------------------------------
 
 if (is.null(exclusionlist) == FALSE) {
 
+## Protein Multi-waffle
+  
 output_waffle_multiple_protein <-
-  input_waffle_protein %>%
+  waffledata_protein_all %>%
   ggplot(aes(fill = Localization, values = Count)) +
   geom_waffle(color = "white", size = 0.35, n_rows = 10, flip = TRUE) +
   facet_wrap(~shortname, nrow = 1, strip.position = "bottom") +
@@ -187,7 +165,7 @@ output_waffle_multiple_protein <-
 ## Proteoform Multi-waffle
 
 output_waffle_multiple_proteoform <-
-  input_waffle_proteoform %>%
+  waffledata_proteoform_all %>%
   ggplot(aes(fill = Localization, values = Count)) +
   geom_waffle(color = "white", size = 0.35, n_rows = 10, flip = TRUE) +
   facet_wrap(~shortname, nrow = 1, strip.position = "bottom") +
@@ -207,19 +185,19 @@ output_waffle_multiple_proteoform <-
 
 }
 
-## Waffle split by fraction
+
+# Make waffle split by datafile/fraction ----------------------------------
 
 if (is.null(shortnameToUse) == FALSE) {
 
-output_waffle_multiple_protein2 <-
-  input_waffle_protein_byfraction %>%
+output_waffle_protein_byfraction <-
+  waffledata_protein_all_byfraction %>%
   ggplot(aes(fill = Localization, values = Count)) +
   geom_waffle(color = "white", size = 0.35, n_rows = 10, flip = TRUE) +
   facet_wrap(~fraction, nrow = 1, strip.position = "bottom") +
   scale_x_discrete(expand=c(0,0)) +
   scale_y_continuous(labels = function(x) x * 10, # this multiplier must be equal to n_rows above
                      expand = c(0,0)) +
-  
   scale_fill_tableau(name=NULL) +
   coord_equal() +
   labs(
@@ -232,7 +210,10 @@ output_waffle_multiple_protein2 <-
 
 }
 
-# Output --------------------------------------------------------------------------------------
+
+# Output, all shortname waffles -------------------------------------------
+
+setwd(here())
 
 # Check for the necessary output directories
 
@@ -270,7 +251,7 @@ if (is_null(exclusionlist) == FALSE) {
   
 }
 
-# Waffles split by fraction -------------------------------------------------------------------
+# Output, waffle split by fraction ----------------------------------------
 
 if (is_null(shortnameToUse) == FALSE) {
   
@@ -282,9 +263,11 @@ if (is_null(shortnameToUse) == FALSE) {
   #   print(output_waffle_multiple_protein2)
   #   dev.off()
   
-  pdf(file = glue("output/waffles/{systime}_waffle_protein_byfraction_{shortnameToUse}.pdf"),
-      width = 8, height = 5, bg = "transparent")
-  print(output_waffle_multiple_protein2)
+  pdf(
+    file = glue("output/waffles/{systime}_waffle_protein_byfraction_{shortnameToUse}.pdf"),
+    width = 8, height = 5, bg = "transparent"
+    )
+  print(output_waffle_protein_byfraction)
   dev.off()
   
 }

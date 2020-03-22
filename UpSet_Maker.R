@@ -9,17 +9,22 @@
 # "{shortname}_fractions_protein" or "{shortname}_fractions_proteoform"
 # which contains columns with UniProt IDs or proteoform record numbers
 
-TDsummarypath <- "Z:/ICR/David Butcher/Data Summaries/EcoliMG1655_TDdatasummary.xlsx"
+TDsummarypath <- 
+  "Z:/ICR/David Butcher/Data Summaries/EcoliMG1655/EcoliMG1655_TDdatasummary.xlsx"
 
 # List of shortnames of TD reports to get UpSet plots for
 
-shortname <- c("peppi04b")
+shortname <- c("peppi04d")
 
 # Set the following parameters appropriately for the UpSet plots you
 # want to make
 
 make_protein_UpSet <- TRUE
 make_proteoform_UpSet <- TRUE
+
+# This should only be used if working with an unfractionated run
+
+make_protein_UpSet_unfrac <-  FALSE
 
 # Install and Load Required Packages ----------------------------------------------------------
 
@@ -114,7 +119,8 @@ killNA <- function(list_in) {
 
 if (make_protein_UpSet == TRUE) {
 
-protein_id <- shortname %>%
+protein_id <-
+  shortname %>%
   as.list %>% 
   map(function(x) glue("{x}_fractions_protein")) %>%
   map(function(x) read_xlsx(TDsummarypath, sheet = x)) %>% 
@@ -127,7 +133,8 @@ names(protein_id) <- shortname
 
 if (make_proteoform_UpSet == TRUE) {
 
-proteoform_id <- shortname %>%
+proteoform_id <-
+  shortname %>%
   as.list %>% 
   map(function(x) glue("{x}_fractions_proteoform")) %>%
   map(function(x) read_xlsx(TDsummarypath, sheet = x)) %>% 
@@ -138,61 +145,111 @@ names(proteoform_id) <- shortname
 
 }
 
+if (make_protein_UpSet_unfrac == TRUE) {
+  
+  protein_id_unfrac <-
+    shortname %>%
+    as.list %>% 
+    map(function(x) glue("{x}_runs_protein")) %>%
+    map(function(x) read_xlsx(TDsummarypath, sheet = x)) %>% 
+    map(as.list) %>% 
+    map(killNA)
+  
+  names(protein_id_unfrac) <- shortname
+  
+}
+
 # UpSet plot, proteins by fraction ------------------------------------------------------------
 
 if (make_protein_UpSet == TRUE) {
-
-UpSet_protein <- 
-  protein_id %>% 
-  map(
-    
-    function(proteinlist)
-    {
+  
+  UpSet_protein <- 
+    protein_id %>% 
+    map(
       
-      upset(fromList(proteinlist),
-            sets = rev(glue("Frac_0{1:length(proteinlist)}")),
-            nintersects = NA,
-            sets.x.label = "Total Protein IDs",
-            keep.order = T,
-            mainbar.y.label = "Unique Protein IDs in Intersection",
-            text.scale =  c(1.5, 1.2, 1.5, 1.5, 1.2, 0.9),
-            point.size = 2,
-            line.size = 0.75,
-            group.by = "degree")
+      function(proteinlist)
+      {
+        
+        upset(
+          fromList(proteinlist),
+          sets = rev(glue("Frac_0{1:length(proteinlist)}")),
+          nintersects = NA,
+          sets.x.label = "Total Protein IDs",
+          keep.order = T,
+          mainbar.y.label = "Unique Protein IDs in Intersection",
+          text.scale =  c(1.5, 1.2, 1.5, 1.5, 1.2, 0.9),
+          point.size = 2,
+          line.size = 0.75,
+          group.by = "degree"
+        )
+        
+      }
       
-    }
-    
-  )
-
+    )
+  
 }
 
 # UpSet plot, proteoforms by fraction ---------------------------------------------------------
 
 if (make_proteoform_UpSet == TRUE) {
-
-UpSet_proteoform <- 
-  proteoform_id %>% 
-  map(
-    
-    function(proteoformlist)
-    {
+  
+  UpSet_proteoform <- 
+    proteoform_id %>% 
+    map(
       
-      upset(fromList(proteoformlist),
-            sets = rev(glue("Frac_0{1:length(proteoformlist)}")),
-            nintersects = NA,
-            sets.x.label = "Total Proteoform IDs",
-            keep.order = T,
-            mainbar.y.label = "Unique Proteoform IDs in Intersection",
-            text.scale =  c(1.5, 1.2, 1.5, 1.5, 1.2, 0.9),
-            point.size = 2,
-            line.size = 0.75,
-            group.by = "degree")
+      function(proteoformlist)
+      {
+        
+        upset(
+          fromList(proteoformlist),
+          sets = rev(glue("Frac_0{1:length(proteoformlist)}")),
+          nintersects = NA,
+          sets.x.label = "Total Proteoform IDs",
+          keep.order = T,
+          mainbar.y.label = "Unique Proteoform IDs in Intersection",
+          text.scale =  c(1.5, 1.2, 1.5, 1.5, 1.2, 0.9),
+          point.size = 2,
+          line.size = 0.75,
+          group.by = "degree"
+        )
+        
+      }
       
-    }
-    
-  )
-
+    )
+  
 }
+
+
+# UpSet plots, proteins by run - unfractionated ---------------------------
+
+if (make_protein_UpSet_unfrac == TRUE) {
+  
+  UpSet_protein_unfrac <- 
+    protein_id_unfrac %>% 
+    map(
+      
+      function(proteinlist)
+      {
+        
+        upset(
+          fromList(proteinlist),
+          sets = rev(glue("Run_0{1:length(proteinlist)}")),
+          nintersects = NA,
+          sets.x.label = "Total Protein IDs",
+          keep.order = T,
+          mainbar.y.label = "Unique Protein IDs in Intersection",
+          text.scale =  c(1.5, 1.2, 1.5, 1.5, 1.2, 0.9),
+          point.size = 2,
+          line.size = 0.75,
+          group.by = "degree"
+        )
+        
+      }
+      
+    )
+  
+}
+
 
 # Output --------------------------------------------------------------------------------------
 
@@ -202,24 +259,48 @@ if (dir.exists("output/UpSet/")== FALSE) {dir.create("output/UpSet/")}
 # To change output params of UpSet plots, check args for
 # saveProteinPlots or saveProteoformPlots functions
 
-shortnamelist <- shortname %>% as.list
-
 if (make_protein_UpSet == TRUE) {
   
-  message(glue("Saving protein UpSet plots to output/UpSet/")) 
-  map2(UpSet_protein, shortnamelist, saveProteinPlots, output_dir = "output/UpSet/")
+  message(glue("\nSaving protein UpSet plots to output/UpSet/")) 
+  map2(
+    UpSet_protein,
+    as.list(shortname),
+    saveProteinPlots,
+    output_dir = "output/UpSet/"
+  )
   
 } else {
   
-  message("Skipping protein UpSet plots!!")
+  message("\nSkipping protein UpSet plots")
   
 }
 
 if (make_proteoform_UpSet == TRUE) {
-message(glue("Saving proteoform UpSet plots to output/UpSet/")) 
-map2(UpSet_proteoform, shortnamelist, saveProteoformPlots, output_dir = "output/UpSet/")
+  message(glue("\nSaving proteoform UpSet plots to output/UpSet/")) 
+  map2(
+    UpSet_proteoform,
+    as.list(shortname),
+    saveProteoformPlots,
+    output_dir = "output/UpSet/"
+  )
 } else {
   
-  message("Skipping proteoform UpSet plots!!")
+  message("\nSkipping proteoform UpSet plots")
+  
+}
+
+if (make_protein_UpSet_unfrac == TRUE) {
+  
+  message(glue("\nSaving unfractionated protein UpSet plots to output/UpSet/")) 
+  map2(
+    UpSet_protein_unfrac,
+    as.list(shortname),
+    saveProteinPlots,
+    output_dir = "output/UpSet/"
+  )
+  
+} else {
+  
+  message("\nSkipping unfrac. protein UpSet plots")
   
 }
